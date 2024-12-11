@@ -15,7 +15,7 @@ public class BaseRepository <TEntity> : IRepository<TEntity> where TEntity : cla
     
     public void Dispose()
     {
-        throw new NotImplementedException();
+        _context.Dispose();
     }
 
     //hàm lấy tất cả dữ liệu

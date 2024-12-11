@@ -1,8 +1,11 @@
+using Application.Interfaces;
 using Application.Interfaces.Repository;
 using Application.Interfaces.Service;
+using Application.Mapper;
 using Application.Service;
 using Domain.Entities;
 using Infrastructure.Context;
+using Infrastructure.Persistence;
 using Infrastructure.Repository;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +20,16 @@ public class Program
         // Add services to the container.
 
         builder.Services.AddControllers();
+        
+        //disable csrf api
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", policy =>
+                policy.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader());
+        });
+        
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
@@ -24,6 +37,9 @@ public class Program
         //đăng ký kết nối database(Postgres)
         builder.Services.AddDbContext<DatabaseContext>(options =>
             options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+        
+        //đăng ký UnitOfWork
+        builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
         
         //dđăng ký các Repository
         builder.Services.AddScoped(typeof(IRepository<>), typeof(BaseRepository<>));
@@ -43,16 +59,19 @@ public class Program
         builder.Services.AddScoped<ICartService, CartService>();
         builder.Services.AddScoped<ICartDetailService, CartDetailService>();
         builder.Services.AddScoped<IBookImagesService, BookImagesService>();
+        
+        //dang ký AutoMapper
+        builder.Services.AddAutoMapper(typeof(MappingProfile));
 
         var app = builder.Build();
         
         //cấu hình tự động chạy migration
-        using (var scope = app.Services.CreateScope())
-        {
-            var services = scope.ServiceProvider;
-            var context = services.GetRequiredService<DatabaseContext>();
-            context.Database.Migrate();
-        }
+        // using (var scope = app.Services.CreateScope())
+        // {
+        //     var services = scope.ServiceProvider;
+        //     var context = services.GetRequiredService<DatabaseContext>();
+        //     context.Database.Migrate();
+        // }
 
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
@@ -62,6 +81,9 @@ public class Program
         }
 
         app.UseHttpsRedirection();
+        
+        //thêm cors ==> disable csrf
+        app.UseCors("AllowAll");
 
         app.UseAuthorization();
 
